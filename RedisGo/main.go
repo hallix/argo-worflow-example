@@ -41,20 +41,20 @@ func main() {
 	// io.Copy(file, resp.Body)
 
 	lines := []string{}
-	var datasetSize = 0
 	scanner := bufio.NewScanner(file)
 	// optionally, resize scanner's capacity for lines over 64K, see next example
+	start := time.Now()
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
-		datasetSize++
 	}
-
-	start := time.Now()
-	rdb.LPush(cxt, "dataset.observations", lines[1:])
 	duration := time.Since(start)
-	fmt.Println("exe time", duration)
+	fmt.Println("read time", duration)
 
-	rdb.Set(cxt, "dataset.size", datasetSize, 0)
-	rdb.Set(cxt, "dataset.features", lines[0], 0)
-	fmt.Println("Dataset size:", datasetSize)
+	start = time.Now()
+	rdb.LPush(cxt, "source:dataset:observations", lines[1:])
+	duration = time.Since(start)
+	fmt.Println("write time", duration)
+
+	rdb.Set(cxt, "source:dataset:features", lines[0], 0)
+	fmt.Println("Dataset size:", len(lines))
 }

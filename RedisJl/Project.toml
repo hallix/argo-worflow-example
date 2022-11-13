@@ -1,4 +1,4 @@
-name = "RedisTest"
+name = "RedisJl"
 uuid = "ee0083b5-6917-4b9c-ba0a-4e26317d3cab"
 authors = ["TEMBOAN <temboan@zra.org.zm>"]
 version = "0.1.0"
@@ -6,6 +6,8 @@ version = "0.1.0"
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 Pipe = "b98c9c47-44ae-5843-9183-064241ee97a0"
 Redis = "0cf705f9-a9e2-50d1-a699-2b372a39b750"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
