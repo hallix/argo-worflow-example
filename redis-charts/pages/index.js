@@ -1,67 +1,63 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
-import { Bar } from 'react-chartjs-2';
-import { LinearScale,CategoryScale, Chart,BarElement } from "chart.js";
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { LinearScale,CategoryScale, Chart,BarElement,ArcElement,Tooltip } from "chart.js";
 import { createClient } from 'redis';
 
-Chart.register([LinearScale, CategoryScale,BarElement])
+Chart.register([LinearScale, CategoryScale,BarElement, ArcElement,Tooltip])
 
-const getReportData = redisClient => async(reportName) => {
-  const reportKey = `report:${reportName}`
-  console.log("report key:",reportKey)
+const getReportData = redisClient => async(name) => {
+  const reportKey = `report:${name}`
+  const reportLabelKey = `${reportKey}:labels`
   try {
-    const labels = await redisClient.sMembers(`${reportKey}:labels`)
+    const labelsLengthSize = await redisClient.lLen(reportLabelKey)
+    const labels = (await redisClient.lRange(reportLabelKey,0, labelsLengthSize))//.map(s => s.substring(0,5))
     const datasetsKeys = await redisClient.hGetAll(`${reportKey}:datasets`)
-    console.log("labels:", labels)
-    const dataset = {}
+ 
+    const datasets = []
     
-    for (const [key, value] of Object.entries(datasetsKeys)){
-      console.log("dataset:", key)
-      let size = await redisClient.lLen(value)
-      dataset[key] = (await redisClient.lRange(value,0,size)).map(v => Number(v))
+    for (const [label, value] of Object.entries(datasetsKeys)){
+    
+      const size = await redisClient.lLen(value)
+      const data = (await redisClient.lRange(value,0,size)).map(v => Number(v))
+
+      console.log("data:", data)
+
+      datasets.push({label,data}) 
     }
 
-    console.log("cool:", dataset)
+    return {name,labels, datasets}
   } catch (error) {
     console.error(error)
   }
-  
-
-  
-
-//labels.map( label => redisClient.lRange(`${reportKey}:${label}`))
 }
 
 export async function getServerSideProps(context) {
 
-const client = createClient();
+  const client = createClient();
 
   client.on('error', (err) => console.log('Redis Client Error', err));
 
   await client.connect();
 
- 
-
   const reportList = await client.sMembers('report:list');
   console.log("reports", reportList)
-  await Promise.all(reportList.map(getReportData(client)))
-  //const reports = reportList.map()
-
-  //console.log("report list:", result)
-  //const value = await client.get('key');
+  const reports = await Promise.all(reportList.map(getReportData(client)))
+ 
   await client.disconnect();
 
     return {
       props: {
-        report: {
-          r1:{data:"Good stuff"}
-        }
+        reports
       },
     };
 }
 
-export default function Home({report}) {
+export default function Home({reports}) {
+
+  const group_and_count_agents =  (reports.filter(r => r.name === 'group_and_count_agents'))[0]
+
   return (
     <div className={styles.container}>
       <Head>
@@ -79,41 +75,45 @@ export default function Home({report}) {
           Get started by editing{' '}
           <code className={styles.code}>pages/index.js</code>
         </p>
-
         <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <Bar data={{
-               labels: ['Jun', 'Jul', 'Aug'],
-               datasets: [
-                 {
-                   id: 1,
-                   label: '',
-                   data: [5, 6, 7],
-                 },
-                 {
-                   id: 2,
-                   label: '',
-                   data: [3, 2, 1],
-                 },
-               ],
+        <Doughnut data={{
+              ...group_and_count_agents
              }}
-
             options={{
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  ticks: {color: '#FFFFFF'}
-                }, x: {
-                  ticks: {color: '#FFFFFF'}
+              interaction: {
+                mode: 'point'
+              },
+              plugins: {
+                tooltip:{
+                  enabled:true
+                },
+                legend: {
+                  display:false,
+                },
+                title: {
+                  display: true,
+                  text: "Test chart",
+                  position: "top"
                 }
               },
               backgroundColor: [
                 'rgba(255, 99, 132, 0.7)',
                 'rgba(255, 159, 64, 0.7)',
-                'rgba(255, 205, 86, 0.7)'
+                'rgba(255, 205, 86, 0.7)',
+                'rgba(89, 99, 132, 0.7)',
+                'rgba(45, 18, 64, 0.7)',
+                'rgba(78, 205, 86, 0.7)',
+                'rgba(67, 78, 132, 0.7)',
+                'rgba(123, 15, 64, 0.7)',
+                'rgba(255, 20, 86, 0.7)',
+                'rgba(255, 177, 86, 0.7)'
               ]
             }} />
+            </div>
+        <div className={styles.grid}>
+          <a href="https://nextjs.org/docs" >
+            <h2>Documentation &rarr;</h2>
+           
           </a>
 
           <a href="https://nextjs.org/learn" className={styles.card}>

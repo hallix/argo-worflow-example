@@ -51,13 +51,14 @@ function run()
     @show smembers(conn, "report:time_spent_per_session:columns")
 
     #readDffromRedis(conn,"group_and_count_agents",["dim_user_agent","count"])
-    #group_and_count_agents
+    
     #group_and_count_agents
     #top_5_clients
     #sent_messages_vs_sent_bookings_by_date
 
     #clean Redis
-   # @show del(conn, "source:dataset:observations", "source:dataset:features")
+   @show del(conn, "source:dataset:observations", "source:dataset:features")
+   group_and_count_agents
 end
 
 function writeDftoRedis(conn,key::String,df::DataFrame)
@@ -67,6 +68,7 @@ function writeDftoRedis(conn,key::String,df::DataFrame)
 
     if key === "group_and_count_agents"
         datasetLabels = names(df)
+        @show df[!,:dim_user_agent]
         append!(labels, df[!,:dim_user_agent])
         datasets[datasetLabels[1]] = df[!,:count]
     elseif key === "top_5_clients"
@@ -90,9 +92,7 @@ function writeDftoRedis(conn,key::String,df::DataFrame)
 
     sadd(conn, "report:list",key)
 
-    for label in labels 
-        sadd(conn, "report:$key:labels", label) 
-    end
+    lpush(conn,"report:$key:labels", labels) 
     
     for (datasetName, data) in datasets
         datasetKey = uuid4()
