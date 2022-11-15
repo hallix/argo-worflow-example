@@ -1,11 +1,11 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
-import { Bar, Doughnut } from 'react-chartjs-2';
-import { LinearScale,CategoryScale, Chart,BarElement,ArcElement,Tooltip } from "chart.js";
+import { Bar, Doughnut,Line } from 'react-chartjs-2';
+import { LinearScale,CategoryScale, Chart,BarElement,ArcElement,Tooltip, LineElement, PointElement } from "chart.js";
 import { createClient } from 'redis';
 
-Chart.register([LinearScale, CategoryScale,BarElement, ArcElement,Tooltip])
+Chart.register([LinearScale, CategoryScale,BarElement, ArcElement,LineElement,PointElement,Tooltip])
 
 const getReportData = redisClient => async(name) => {
   const reportKey = `report:${name}`
@@ -42,8 +42,10 @@ export async function getServerSideProps(context) {
   await client.connect();
 
   const reportList = await client.sMembers('report:list');
-  console.log("reports", reportList)
+
+  console.time("Execution time")
   const reports = await Promise.all(reportList.map(getReportData(client)))
+  console.timeEnd("Execution time")
  
   await client.disconnect();
 
@@ -57,6 +59,9 @@ export async function getServerSideProps(context) {
 export default function Home({reports}) {
 
   const group_and_count_agents =  (reports.filter(r => r.name === 'group_and_count_agents'))[0]
+  const sent_messages_vs_sent_bookings_by_date = (reports.filter(r => r.name === 'sent_messages_vs_sent_bookings_by_date'))[0]
+
+  console.log("cool chart:", sent_messages_vs_sent_bookings_by_date)
 
   return (
     <div className={styles.container}>
@@ -67,16 +72,12 @@ export default function Home({reports}) {
       </Head>
 
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
+      <div className={styles.grid}>
+      </div>
         <div className={styles.grid}>
-        <Doughnut data={{
+          <a href="https://nextjs.org/docs" className={styles.card}>
+            <h2>Documentation &rarr;</h2>
+            <Doughnut data={{
               ...group_and_count_agents
              }}
             options={{
@@ -109,16 +110,36 @@ export default function Home({reports}) {
                 'rgba(255, 177, 86, 0.7)'
               ]
             }} />
-            </div>
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" >
-            <h2>Documentation &rarr;</h2>
-           
           </a>
 
           <a href="https://nextjs.org/learn" className={styles.card}>
             <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
+            <Bar data={{
+              ...sent_messages_vs_sent_bookings_by_date
+             }}
+            options={{
+              interaction: {
+                mode: 'point'
+              },
+              plugins: {
+                tooltip:{
+                  enabled:true
+                },
+                legend: {
+                  display:false,
+                },
+                title: {
+                  display: true,
+                  text: "Test chart",
+                  position: "top"
+                }
+              },
+              backgroundColor: [
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(255, 159, 64, 0.7)',
+                
+              ]
+            }} />
           </a>
 
           <a

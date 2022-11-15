@@ -33,7 +33,7 @@ function run()
     top_5_clients = @time @pipe select(df,[:id_visitor]) |> groupby(_,:id_visitor) |> combine(_,nrow => :count) |> sort(_,:count,rev=true) |> first(_,5)
 
     #Sent a message vs sent a booking request by date sample of 100 latest 
-    sent_messages_vs_sent_bookings_by_date = @time @pipe select(df,[:id_visitor,:sent_message,:sent_booking_request,:ds]) |> groupby(_,:ds) |> combine(_, :sent_booking_request => snt -> sum(snt),:sent_message => snt -> sum(snt)) |> sort(_,:ds, rev=true) |> first(_,100)
+    sent_messages_vs_sent_bookings_by_date = @time @pipe select(df,[:id_visitor,:sent_message,:sent_booking_request,:ds]) |> groupby(_,:ds) |> combine(_, :sent_booking_request => snt -> sum(snt),:sent_message => snt -> sum(snt)) |> sort(_,:ds, rev=false) |> first(_,30)
 
     #Sent a message vs sent
     sent_messages_vs_sent_bookings = @time @pipe select(df,[:id_visitor,:sent_message,:sent_booking_request,:ds]) |> combine(_, :sent_booking_request => snt -> sum(snt),:sent_message => snt -> sum(snt))
@@ -43,7 +43,7 @@ function run()
 
     @time writeDftoRedis(conn,"group_and_count_agents",group_and_count_agents)
     #@time writeDftoRedis(conn,"top_5_clients",top_5_clients)
-    #@time writeDftoRedis(conn,"sent_messages_vs_sent_bookings_by_date",sent_messages_vs_sent_bookings_by_date)
+    @time writeDftoRedis(conn,"sent_messages_vs_sent_bookings_by_date",sent_messages_vs_sent_bookings_by_date)
     #@time writeDftoRedis(conn,"sent_messages_vs_sent_bookings",sent_messages_vs_sent_bookings)
     #@time writeDftoRedis(conn,"time_spent_per_session",time_spent_per_session)
 
@@ -57,8 +57,8 @@ function run()
     #sent_messages_vs_sent_bookings_by_date
 
     #clean Redis
-   @show del(conn, "source:dataset:observations", "source:dataset:features")
-   group_and_count_agents
+ #  @show del(conn, "source:dataset:observations", "source:dataset:features")
+   sent_messages_vs_sent_bookings_by_date
 end
 
 function writeDftoRedis(conn,key::String,df::DataFrame)
@@ -70,11 +70,14 @@ function writeDftoRedis(conn,key::String,df::DataFrame)
         datasetLabels = names(df)
         @show df[!,:dim_user_agent]
         append!(labels, df[!,:dim_user_agent])
-        datasets[datasetLabels[1]] = df[!,:count]
+        datasets["dim_user_agent"] = df[!,:count]
     elseif key === "top_5_clients"
         
-    elseif key === "sent_messages_vs_sent_bookings_by_date"    
-
+    elseif key === "sent_messages_vs_sent_bookings_by_date" 
+        # @show df[!,:dim_user_agent]
+         append!(labels, df[!,:ds])
+         datasets["sent_booking_request_function"] = df[!,:sent_booking_request_function]
+         datasets["sent_message_function"] = df[!,:sent_message_function]
     elseif key === "sent_messages_vs_sent_bookings"
 
     elseif key === "time_spent_per_session"  
